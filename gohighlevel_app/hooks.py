@@ -148,13 +148,13 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
 # 	"all": [
 # 		"gohighlevel_app.tasks.all"
 # 	],
-# 	"daily": [
-# 		"gohighlevel_app.tasks.daily"
-# 	],
+ 	"daily": [
+ 		"gohighlevel_app.api.data_up_task" #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
+ 	],
 # 	"hourly": [
 # 		"gohighlevel_app.tasks.hourly"
 # 	],
@@ -164,7 +164,7 @@ app_license = "mit"
 # 	"monthly": [
 # 		"gohighlevel_app.tasks.monthly"
 # 	],
-# }
+ }
 
 # Testing
 # -------

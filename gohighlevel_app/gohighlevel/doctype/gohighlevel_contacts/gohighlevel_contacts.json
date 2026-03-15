@@ -1,0 +1,264 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:id",
+ "creation": "2026-03-10 22:13:41.725679",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "id",
+  "locationid",
+  "businessid",
+  "contactname",
+  "firstname",
+  "lastname",
+  "firstnameraw",
+  "lastnameraw",
+  "companyname",
+  "email",
+  "phone",
+  "dateofbirth",
+  "column_break_tljs",
+  "type",
+  "source",
+  "assignedto",
+  "country",
+  "city",
+  "state",
+  "postalcode",
+  "address1",
+  "website",
+  "timezone",
+  "column_break_wqtq",
+  "profilephoto",
+  "dnd",
+  "dndsettings",
+  "tags",
+  "dateupdated",
+  "dateadded",
+  "section_break_bpkj",
+  "additionalemails",
+  "startafter",
+  "column_break_vivw",
+  "customfields"
+ ],
+ "fields": [
+  {
+   "fieldname": "id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "\u8054\u7cfb\u4ebaID",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "\u90ae\u7bb1"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "\u624b\u673a\u53f7"
+  },
+  {
+   "fieldname": "column_break_tljs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Data",
+   "label": "\u8054\u7cfb\u4eba\u7c7b\u578b"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "\u8054\u7cfb\u4eba\u6765\u6e90"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "\u8054\u7cfb\u4eba\u6240\u5c5e\u56fd\u5bb6\u4ee3\u7801"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "\u57ce\u5e02"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "\u5dde"
+  },
+  {
+   "fieldname": "address1",
+   "fieldtype": "Data",
+   "label": "\u8be6\u7ec6\u5730\u5740"
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "\u4e2a\u4eba / \u516c\u53f8\u7f51\u5740"
+  },
+  {
+   "fieldname": "timezone",
+   "fieldtype": "Data",
+   "label": "\u65f6\u533a"
+  },
+  {
+   "fieldname": "column_break_wqtq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "dnd",
+   "fieldtype": "Check",
+   "label": "\u514d\u6253\u6270\u5f00\u5173"
+  },
+  {
+   "default": "[]",
+   "fieldname": "tags",
+   "fieldtype": "JSON",
+   "label": "\u6807\u7b7e\u5217\u8868",
+   "max_height": "120px"
+  },
+  {
+   "fieldname": "section_break_bpkj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_vivw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "locationid",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "\u4f4d\u7f6eID",
+   "options": "GoHighLevel_Set",
+   "reqd": 1
+  },
+  {
+   "fieldname": "businessid",
+   "fieldtype": "Data",
+   "label": "\u5546\u6237ID"
+  },
+  {
+   "fieldname": "contactname",
+   "fieldtype": "Data",
+   "label": "\u8054\u7cfb\u4eba\u5168\u540d"
+  },
+  {
+   "default": "name",
+   "fieldname": "firstname",
+   "fieldtype": "Data",
+   "label": "\u540d\u5b57"
+  },
+  {
+   "fieldname": "lastname",
+   "fieldtype": "Data",
+   "label": "\u59d3\u6c0f"
+  },
+  {
+   "fieldname": "firstnameraw",
+   "fieldtype": "Data",
+   "label": "\u540d\u5b57(raw)"
+  },
+  {
+   "fieldname": "lastnameraw",
+   "fieldtype": "Data",
+   "label": "\u59d3\u6c0f(raw)"
+  },
+  {
+   "fieldname": "companyname",
+   "fieldtype": "Data",
+   "label": "\u6240\u5c5e\u516c\u53f8 / \u4f01\u4e1a\u540d\u79f0"
+  },
+  {
+   "fieldname": "dateofbirth",
+   "fieldtype": "Date",
+   "label": "\u51fa\u751f\u65e5\u671f"
+  },
+  {
+   "fieldname": "assignedto",
+   "fieldtype": "Data",
+   "label": "\u4e13\u5c5e\u8ddf\u8fdb\u4eba ID"
+  },
+  {
+   "fieldname": "postalcode",
+   "fieldtype": "Data",
+   "label": "\u90ae\u7f16"
+  },
+  {
+   "default": "\"https://c-ssl.dtstatic.com/uploads/item/202003/18/20200318091411_bopif.thumb.400_0.jpg\"",
+   "fieldname": "profilephoto",
+   "fieldtype": "Image",
+   "label": "\u5934\u50cfurl"
+  },
+  {
+   "fieldname": "dndsettings",
+   "fieldtype": "JSON",
+   "label": "\u514d\u6253\u6270\u8be6\u7ec6\u8bbe\u7f6e",
+   "options": "{}"
+  },
+  {
+   "fieldname": "dateupdated",
+   "fieldtype": "Datetime",
+   "label": "\u66f4\u65b0\u65f6\u95f4"
+  },
+  {
+   "fieldname": "dateadded",
+   "fieldtype": "Datetime",
+   "label": "\u521b\u5efa\u65f6\u95f4"
+  },
+  {
+   "default": "[]",
+   "fieldname": "additionalemails",
+   "fieldtype": "JSON",
+   "label": "\u989d\u5916\u90ae\u7bb1\u5217\u8868",
+   "max_height": "180px"
+  },
+  {
+   "default": "[]",
+   "fieldname": "startafter",
+   "fieldtype": "JSON",
+   "label": "\u5206\u9875\u8f85\u52a9\u5b57\u6bb5",
+   "max_height": "80px"
+  },
+  {
+   "default": "[]",
+   "fieldname": "customfields",
+   "fieldtype": "JSON",
+   "label": "\u81ea\u5b9a\u4e49\u5b57\u6bb5\u5217\u8868"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-15 00:31:27.628281",
+ "modified_by": "Administrator",
+ "module": "gohighlevel",
+ "name": "GoHighLevel_contacts",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

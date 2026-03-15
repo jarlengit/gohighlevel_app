@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "autoname": "field:locationId",
+ "creation": "2026-03-11 17:49:29.681082",
+ "description": "GoHighLevel \u5bf9\u63a5\u79d8\u94a5,\u76f8\u5173\u914d\u7f6e\u9875\u9762",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "check",
+  "locationId",
+  "\u4f4d\u7f6e\u540d\u79f0",
+  "private_integration_token"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "check",
+   "fieldtype": "Check",
+   "label": "\u8d26\u6237\u662f\u5426\u542f\u7528"
+  },
+  {
+   "columns": 2,
+   "fieldname": "locationId",
+   "fieldtype": "Data",
+   "label": "\u4f4d\u7f6eid",
+   "unique": 1
+  },
+  {
+   "columns": 4,
+   "default": "pit-ad705565-f7b0-4ca2-99a4-98df1aed8397",
+   "fieldname": "private_integration_token",
+   "fieldtype": "Data",
+   "label": "\u79c1\u57df\u96c6\u6210token"
+  },
+  {
+   "columns": 2,
+   "fieldname": "\u4f4d\u7f6e\u540d\u79f0",
+   "fieldtype": "Data",
+   "label": "\u4f4d\u7f6e\u540d\u79f0",
+   "unique": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-14 17:38:03.638370",
+ "modified_by": "Administrator",
+ "module": "gohighlevel",
+ "name": "GoHighLevel_Set",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
