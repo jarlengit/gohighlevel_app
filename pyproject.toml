@@ -9,6 +9,9 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    "gohighlevel-api-client~=1.0.0b1",
+    "asgiref~=3.11.1",
+    "deepdiff~=8.6.1"
     
 ]
 
