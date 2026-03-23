@@ -14,6 +14,7 @@ dependencies = [
     "deepdiff~=8.6.1",
     # 显式添加 Frappe 16.12.0 对应的 pypika URL 依赖（关键）
     "pypika @ git+https://github.com/frappe/pypika@2c50e6142b2d61d2d243e466fdd5dc03b3d918f2",
+    "gunicorn @ git+https://github.com/frappe/gunicorn@bb554053bb87218120d76ab6676af7015680e8b6",
     # 保留原有依赖（调整后的 ics/tatsu 版本）
     "ics==0.7.2",  # 稳定版，避免预发布问题
     "tatsu==5.8.0",
