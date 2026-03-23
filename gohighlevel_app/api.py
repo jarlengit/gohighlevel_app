@@ -3,7 +3,7 @@ from highlevel.services.contacts.models import UpdateContactDto ,UpsertContactDt
 import frappe,json
 from deepdiff import DeepDiff
 import asyncio
-from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client
+from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_dddress_doc,upinsert_contact_doc,get_contact_lst
 
 
 def get_hl_client(location_id):
@@ -261,4 +261,79 @@ def data_up_task():
         frappe.throw(error_msg)  # 抛出异常
 
 
+@frappe.whitelist(allow_guest=True)
+def data_up_task_2():
+    '''定时任务：同步GoHighLevel联系人数据到Frappe'''
+    try:
+        out = []
+        gh_lst =  frappe.get_all('GoHighLevel_Set',fields=['name', 'locationid','private_integration_token'] ,filters={'check': 1})
+        for ght in gh_lst:
+            pit = ght.get('private_integration_token')
+            location_id = ght.get('locationid')
+            if not pit or not location_id:
+                frappe.logger().error(
+                    message=f"记录 {ght.get('name')} 缺少token或locationid",
+                    title="GoHighLevel数据同步-参数缺失"
+                )
+                continue
 
+            contacts = get_contact_lst(location_id)
+            if contacts:
+                frappe.msgprint(f"记录 {len(contacts)}条联系人数据")
+                for contact in contacts:
+                    doc = upinsert_contact_doc(contact)
+                    out.append(doc.as_dict())
+            """            
+            ghc = HighLevel(private_integration_token=pit)
+            with reusable_async_loop() as loop:
+                contacts_meta = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=1))
+                total = contacts_meta.get("meta", {}).get('total', 0)
+                if total == 0:
+                    frappe.msgprint(f"记录 {ght.get('name')} 无联系人数据")
+                    return
+                
+                contacts_data = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=total))
+                contacts = contacts_data. get('contacts', [])
+                
+                for contact in contacts:
+                    doc = get_contact_doc(contact)
+                    frappe.logger().error(f"xxxx数据:{doc}")  # 记录错误日志
+
+                    address_doc = get_dddress_doc(contact)
+                    if address_doc.get("address_line1"):
+                        address_doc['locationid'] = location_id
+                        #更新国家代码,提取文档name
+                        address_doc['country'] = frappe.db.exists('Country',{'code': address_doc.get('country')})
+                        #frappe.get_value('Country',  filters={'code': address_doc.get('country')},fieldname='name')
+                        frappe.logger().error(f"xxxx数据:{address_doc}")  # 记录错误日志
+
+                        #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
+                        if address :=frappe.db.exists(address_doc['doctype'], {'locationid': location_id, 'address_line1': address_doc.get('address_line1')}):
+                            #存在
+                            address_doc.pop("name", None)
+                            address_doc = frappe.get_doc(address_doc['doctype'], address).update(address_doc).save(ignore_permissions=True)
+                        else:
+                            #不存在
+                            address_doc = frappe.new_doc(address_doc['doctype']).update(address_doc).insert(ignore_permissions=True)
+                        frappe.db.commit()
+                        doc['address'] = address_doc.name
+
+                    #更新联系人数据，先判断是否存在相同locationid和name的联系人记录，如果存在则更新，不存在则创建
+                    if ct :=frappe.db.exists('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')}):
+                        #存在
+                        doc.pop("name", None)
+                        doc = frappe.get_doc(doc['doctype'], ct).update(doc).save(ignore_permissions=True)
+                    else:
+                        #不存在
+                        doc = frappe.new_doc(doc['doctype']).update(doc).insert(ignore_permissions=True,ignore_if_duplicate=True)
+                    frappe.logger().error(f"new_doc数据:{doc.as_dict()}")  #记录
+                    frappe.db.commit()
+                """
+        return out
+        
+    except Exception as e:
+        frappe.db.rollback()  # 异常回滚, 不涉及数据写入,可注释
+        # 更友好的异常提示，便于排查
+        error_msg = f"处理GoHighLevel数据时出错：{str(e)}"
+        frappe.logger().error(f"{error_msg}, GoHighLevel数据同步错误")  # 记录错误日志
+        frappe.throw(error_msg)  # 抛出异常

@@ -11,15 +11,15 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "gohighlevel_app",
-# 		"logo": "/assets/gohighlevel_app/logo.png",
-# 		"title": "gohighlevel",
-# 		"route": "/gohighlevel_app",
+add_to_apps_screen = [
+ 	{
+ 		"name": "gohighlevel_app",
+ 		"logo": "/assets/gohighlevel_app/logo.png",
+ 		"title": "gohighlevel",
+ 		"route": "/gohighlevel_app",
 # 		"has_permission": "gohighlevel_app.api.permission.has_app_permission"
-# 	}
-# ]
+ 	}
+ ]
 
 # Includes in <head>
 # ------------------

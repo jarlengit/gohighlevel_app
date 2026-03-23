@@ -83,3 +83,165 @@ def get_highlevel_client(location_id) -> Optional[HighLevel]:
         error_msg = f"{ContactConstants.LOG_TITLE} - 客户端初始化异常: {str(e)}, locationId={locationid}"
         frappe.logger().error(error_msg)
         frappe.throw(error_msg)
+
+
+
+def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
+    """根据字段定义解析联系人数据
+    {'id': 'Dg4BsoqIKLirUfQivfV2', 'locationId': 'Rft5PXFLw9e6vhedtZ86', 
+    'contactName': '(example) jordan smith', 
+    'firstName': '(example) jordan', 
+    'lastName': 'smith', 
+    'firstNameRaw': '(example) jordan', 
+    'lastNameRaw': 'smith', 
+    'companyName': "(Example) MacLaren's Pub", 
+    'email': 'jordan.smith@example.com', 
+    'phone': None, 'dnd': True, 
+    'dndSettings': {'Call': {'status': 'inactive', 'code': '103'}, 'Email': {'status': 'inactive', 'code': '103'}, 
+    'SMS': {'status': 'inactive', 'code': '103'}}, 
+    'type': 'customer', 
+    'source': None, 
+    'assignedTo': None, 
+    'city': None, 
+    'state': None, 
+    'postalCode': None, 
+    'address1': None, 
+    'dateAdded': '2026-03-05T14:20:36.702Z', 
+    'dateUpdated': '2026-03-20T16:49:03.195Z', 
+    'dateOfBirth': None, 
+    'businessId': '69a9912c5ab8294414041a1a', 
+    'tags': ['follow-up'], 
+    'followers': [], 
+    'country': 'US', 
+    'website': None, 'timezone': None,
+      'profilePhoto': None, 
+      'additionalEmails': [{'validEmailDate': None, 'email': 
+'jordan.office@example.com'}, 
+{'validEmailDate': None, 'email': 'jordan@corporate.net'}, 
+{'validEmailDate': None, 'email': 'jsmith@email.com'}], 
+'customFields': [], 'startAfter': [1772720436702, 'Dg4BsoqIKLirUfQivfV2']}
+
+    """
+
+    doc = {'doctype': 'Contact'}
+    key_dict = {
+        'contactName':'middle_name',
+        'firstName':'first_name',
+        'lastName':'last_name',
+        'companyName':'company_name',
+        'email':'email_id',
+        'phone':'phone',
+        'type':'contact_type',
+        'tags':'tags',
+        'dateOfBirth':'date_of_birth',
+        'website':'website',
+        'additionalEmails':'email_ids',
+        'followers':'followers',
+        'profilePhoto':'image'    #头像
+    }
+
+    #关键字段不为空才进行赋值
+    doc.update({key_dict.get(k,k):v for k,v in data.items() if k in key_dict and v is not None})
+    
+    doc['custom_gohighlevel_contact_id'] = data.get('id')
+    if data.get('email'):
+        doc['email_id'] = data.get('email')
+        doc['email_ids'] = []
+        doc['email_ids'].append({'email_id':data.get('email'), 'is_primary':1})
+        
+        for i in data.get('additionalEmails',[]):
+            doc['email_ids'].append({'email_id':i.get('email'), 'is_primary':0})
+
+    return doc
+
+
+def get_dddress_doc(data: Dict[str, Any]) -> Dict[str, Any]:
+    """根据字段定义解析联系人数据"""
+    doc = {'doctype': 'Address'}
+
+    key_dict = {
+        'address1':'address_line1',
+        'city':'city',
+        'county':'county',
+        'state':'state',
+        'postalCode':'pincode',
+        'country':'country',
+        'email':'email_id',
+        'phone':'phone',
+        #'website':'website',
+        #'locationId':'location_id'
+        
+    }
+
+    #关键字段不为空才进行赋值
+    doc.update({key_dict.get(k,k):v for k,v in data.items() if k in key_dict and v is not None})
+    
+    doc['custom_box'] = 1
+    
+    doc['address_title'] = doc.get('address_line1') if doc.get('address_line1') else '地址信息'
+    
+    if doc.get('city') is  None:
+        doc['city'] = '*'
+    
+    return doc
+
+def get_contact_lst(location_id: str) -> Optional[Dict[str, Any]]:
+    """根据location_id和contact_id获取联系人数据"""
+    ghc = get_highlevel_client(location_id)
+    if not ghc:
+        return None
+
+    try:
+        with reusable_async_loop() as loop:
+            contacts_meta = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=1))
+            total = contacts_meta.get("meta", {}).get('total', 0)
+            if total == 0:
+                frappe.msgprint(f"记录 {ght.get('name')} 无联系人数据")
+                return
+            
+            contacts_data = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=total))
+            contacts = contacts_data. get('contacts', [])
+            return contacts
+
+    except Exception as e:
+        frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常: {str(e)}, locationId={location_id}, contactId={contact_id}")
+        return None
+
+def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
+    """根据字段定义解析联系人数据"""
+    doc = get_contact_doc(data) #提取联系人文档数据
+    address_doc = get_dddress_doc(data) #提取地址文档数据
+    #地址数据不为空才进行创建
+    if address_doc.get("address_line1"):
+        address_doc['locationid'] = data.get('locationId')
+        #更新国家代码,提取文档name
+        address_doc['country'] = frappe.db.exists('Country',{'code': address_doc.get('country')})
+        #frappe.get_value('Country',  filters={'code': address_doc.get('country')},fieldname='name')
+        frappe.logger().error(f"xxxx数据:{address_doc}")  # 记录错误日志
+
+        #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
+        if address :=frappe.db.exists(address_doc['doctype'], {'locationid': data.get('locationId'), 'address_line1': address_doc.get('address_line1')}):
+            #存在
+            address_doc.pop("name", None)
+            address_doc = frappe.get_doc(address_doc['doctype'], address).update(address_doc).save(ignore_permissions=True)
+        else:
+            #不存在
+            address_doc = frappe.new_doc(address_doc['doctype']).update(address_doc).insert(ignore_permissions=True)
+        frappe.db.commit()
+        doc['address'] = address_doc.name
+
+    #更新联系人数据，先判断是否存在相同locationid和name的联系人记录，如果存在则更新，不存在则创建
+    if ct :=frappe.db.exists('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')}):
+        #存在
+        doc.pop("name", None)
+        doc = frappe.get_doc(doc['doctype'], ct).update(doc).save(ignore_permissions=True)
+    else:
+        #不存在
+        doc = frappe.new_doc(doc['doctype']).update(doc).insert(ignore_permissions=True,ignore_if_duplicate=True)
+    frappe.logger().error(f"new_doc数据:{doc.as_dict()}")  #记录
+    frappe.db.commit()
+    
+    
+    return doc
+
+
