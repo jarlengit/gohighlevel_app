@@ -20,7 +20,7 @@ add_to_apps_screen = [
 # 		"has_permission": "gohighlevel_app.api.permission.has_app_permission"
  	}
  ]
-
+fixtures = ["gohighlevel_app/fixtures/custom_field.json"]
 
 # Includes in <head>
 # ------------------
