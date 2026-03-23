@@ -21,6 +21,16 @@ add_to_apps_screen = [
  	}
  ]
 
+fixtures = [
+ 	# 案例1：导入 Category 表全量数据
+     {
+        "dt": "Custom Field",
+        "priority": 5,  # 先导入自定义字段，再导入Category数据
+        "ignore_if_duplicate": True,  # 忽略重复记录（避免导入报错）
+        "priority": 10,  # 导入优先级（数字越小越先导入，解决依赖问题）
+        "sync_on_migrate": True  # 每次执行 bench migrate 时同步（默认True）
+    },
+]
 # Includes in <head>
 # ------------------
 
