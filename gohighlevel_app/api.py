@@ -122,7 +122,6 @@ def webhook_func():
 
     location_id = args.location.get('id') #提取位置id(绑定账号相关信息)
     method=frappe.request.method #请求方法
-
     frappe.logger().error(f"记录webhook 请求响应:\n {args}")
     try:
 
@@ -152,6 +151,44 @@ def webhook_func():
         error_msg = f"处理GoHighLevel webhook事件时出错：{str(e)}"
         frappe.logger().error(f"{error_msg}, GoHighLevel webhook处理错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
+
+@frappe.whitelist(allow_guest=True)
+def webhook_func_2():
+    """ 处理GoHighLevel的webhook事件(创建/删除,修改)，根据事件类型和请求方法进行相应的操作,webhook 网关 V2版本"""
+    #提取参数
+    args = frappe._dict(frappe.request.json or frappe.form_dict )
+    
+    
+    try:
+        #获得联系人id
+        contacts_id = args.contact_id #提取 contacts 的 id 等价于 name
+        #获取事件类型
+        event_type = args.workflow.get('name') #提取事件类型
+        location_id = args.location.get('id') #提取位置id(绑定账号相关信息)
+        method=frappe.request.method #请求方法
+        frappe.logger().error(f"记录webhook 请求响应:\n {args}")
+        ghc = get_highlevel_client(location_id) #获取gh客户端实例
+        gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=contacts_id))  #提取gl记录
+        gh_doc = gh_doc.get('contact',{})
+
+        if (event_type == 'GoHighLevel to Frappe Update' or event_type ==  'GoHighLevel to Frappe Lead Created') and method in ['POST','PUT']:
+            res = upinsert_contact_doc(gh_doc)
+        else:
+            pass
+
+        frappe.db.commit() #提交数据库事务
+
+        frappe.logger().error(f"处理GoHighLevel webhook事件结果:\n {res.as_dict()} ") #记录处理结果日志
+        frappe.response["message"] = f"成功处理GoHighLevel webhook事件: 联系人 {res.name}" #
+        frappe.response["res"] = res #返回处理结果给前端
+
+    except Exception as e:
+        error_msg = f"处理GoHighLevel webhook事件时出错：{str(e)}"
+        frappe.logger().error(f"{error_msg}, GoHighLevel webhook处理错误")  # 记录错误日志
+        frappe.throw(error_msg)  # 抛出异常  
+        frappe.response["message"] =error_msg
+
+
 
 
 @frappe.whitelist(allow_guest=True)

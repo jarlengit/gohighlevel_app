@@ -240,8 +240,8 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         doc = frappe.new_doc(doc['doctype']).update(doc).insert(ignore_permissions=True,ignore_if_duplicate=True)
     frappe.logger().error(f"new_doc数据:{doc.as_dict()}")  #记录
     frappe.db.commit()
-    
-    
+
     return doc
+
 
 
