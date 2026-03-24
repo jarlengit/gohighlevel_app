@@ -204,7 +204,7 @@ def get_contact_lst(location_id: str) -> Optional[Dict[str, Any]]:
             return contacts
 
     except Exception as e:
-        frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常: {str(e)}, locationId={location_id}, contactId={contact_id}")
+        frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常: {str(e)}, locationId={location_id}, {data}")
         return None
 
 def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:

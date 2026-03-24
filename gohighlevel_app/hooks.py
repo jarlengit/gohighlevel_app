@@ -155,6 +155,7 @@ scheduler_events = {
 # 	],
  	"daily": [
  		"gohighlevel_app.api.data_up_task" #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
+ 		"gohighlevel_app.api.data_up_task_2" #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
  	],
 # 	"hourly": [
 # 		"gohighlevel_app.tasks.hourly"
