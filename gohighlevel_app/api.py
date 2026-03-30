@@ -4,7 +4,7 @@ import frappe,json
 from deepdiff import DeepDiff
 import asyncio
 from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_dddress_doc,upinsert_contact_doc,get_contact_lst
-
+from highlevel.storage import MemorySessionStorage
 
 def get_hl_client(location_id):
     """获取 GoHighLevel 客户端实例"""
@@ -25,23 +25,49 @@ def get_hl_client(location_id):
 @frappe.whitelist(allow_guest=True)
 def webhook_test():
     '''用来做webhook测试的'''
-    args = frappe._dict(frappe.request.json or frappe.form_dict )
-    out =dict(
-        contacts_id = args.contact_id ,#提取 contacts 的 id 等价于 name
-        event_type = args.workflow.get('name'), #提取事件类型
-        location_id = args.location.get('id'),#提取位置id(绑定账号相关信息)
-        method=frappe.request.method ,#请求方法
-        private_integration_token = frappe.get_value(
-            "GoHighLevel_Set",          # 第1个参数：doctype
-            {"check": 1,"name": args.location.get('id')},               # 第2个参数：filters（字典）
-            "private_integration_token" # 第3个参数：fieldname
-        ),
-        raw= args
-    )
-    frappe.logger().error(f"记录webhook 请求响应:\n {out} ")
+    try:
+        data = frappe._dict(frappe.request.json or frappe.form_dict )
+        # 1. 打印请求日志（调试必备）
+        frappe.logger().error("="*50)
+        frappe.logger().error("收到 GHL Webhook 请求")
+        frappe.logger().error(f"事件类型: {data.get('type')}")
+        frappe.logger().error(f"事件数据: {data}")
 
-    return out
+        # 2. 执行 SDK 自动处理（令牌/安装卸载/验证）
+        # 修复：直接调用函数，不再使用 .on() 装饰器
+        #webhook_middleware(request)
 
+        # 3. 手动处理自定义事件（正确写法！）
+        event_type = data.get('type')
+        
+        # =====================================
+        # 在这里写所有事件的业务逻辑
+        # =====================================
+        if event_type == "INSTALL":
+            frappe.logger().error("✅ 应用安装事件触发")
+            # 你的逻辑：记录用户、初始化数据
+            
+        elif event_type == "UNINSTALL":
+            frappe.logger().error("❌ 应用卸载事件触发")
+            # 你的逻辑：清理数据
+            
+        elif event_type == "contact.added":
+            frappe.logger().error("👤 新增客户事件触发")
+            customer = data.get('data', {})
+            frappe.logger().error(f"客户信息: {customer}")
+            # 你的逻辑：同步CRM、发送通知
+            
+        elif event_type == "order.paid":
+            frappe.logger().error("💰 订单支付事件触发")
+            # 你的逻辑：发货、通知
+
+        # 4. 返回成功给 GHL
+        frappe.response.update({"status": "success"}) 
+
+    except Exception as e:
+        frappe.logger().error(f"处理失败: {str(e)}", exc_info=True)
+        frappe.response["message"] = f"webhook处理失败: {str(e)}"
+    
 def gl_data_to_doc(data:dict) -> dict:
     '''将GoHighLevel的联系人数据转换为Frappe文档格式'''
     data['doctype'] = "GoHighLevel_contacts" #指定文档类型
@@ -320,52 +346,6 @@ def data_up_task_2():
                 for contact in contacts:
                     doc = upinsert_contact_doc(contact)
                     out.append(doc.as_dict())
-            """            
-            ghc = HighLevel(private_integration_token=pit)
-            with reusable_async_loop() as loop:
-                contacts_meta = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=1))
-                total = contacts_meta.get("meta", {}).get('total', 0)
-                if total == 0:
-                    frappe.msgprint(f"记录 {ght.get('name')} 无联系人数据")
-                    return
-                
-                contacts_data = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=total))
-                contacts = contacts_data. get('contacts', [])
-                
-                for contact in contacts:
-                    doc = get_contact_doc(contact)
-                    frappe.logger().error(f"xxxx数据:{doc}")  # 记录错误日志
-
-                    address_doc = get_dddress_doc(contact)
-                    if address_doc.get("address_line1"):
-                        address_doc['locationid'] = location_id
-                        #更新国家代码,提取文档name
-                        address_doc['country'] = frappe.db.exists('Country',{'code': address_doc.get('country')})
-                        #frappe.get_value('Country',  filters={'code': address_doc.get('country')},fieldname='name')
-                        frappe.logger().error(f"xxxx数据:{address_doc}")  # 记录错误日志
-
-                        #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
-                        if address :=frappe.db.exists(address_doc['doctype'], {'locationid': location_id, 'address_line1': address_doc.get('address_line1')}):
-                            #存在
-                            address_doc.pop("name", None)
-                            address_doc = frappe.get_doc(address_doc['doctype'], address).update(address_doc).save(ignore_permissions=True)
-                        else:
-                            #不存在
-                            address_doc = frappe.new_doc(address_doc['doctype']).update(address_doc).insert(ignore_permissions=True)
-                        frappe.db.commit()
-                        doc['address'] = address_doc.name
-
-                    #更新联系人数据，先判断是否存在相同locationid和name的联系人记录，如果存在则更新，不存在则创建
-                    if ct :=frappe.db.exists('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')}):
-                        #存在
-                        doc.pop("name", None)
-                        doc = frappe.get_doc(doc['doctype'], ct).update(doc).save(ignore_permissions=True)
-                    else:
-                        #不存在
-                        doc = frappe.new_doc(doc['doctype']).update(doc).insert(ignore_permissions=True,ignore_if_duplicate=True)
-                    frappe.logger().error(f"new_doc数据:{doc.as_dict()}")  #记录
-                    frappe.db.commit()
-                """
         return out
         
     except Exception as e:
