@@ -162,10 +162,10 @@ def webhook_func():
     try:
         data = frappe._dict(frappe.request.json or frappe.form_dict )
         # 1. 打印请求日志（调试必备）
-        frappe.logger().error("="*50)
-        frappe.logger().error("收到 GHL Webhook 请求")
-        frappe.logger().error(f"事件类型: {data.get('type')}")
-        frappe.logger().error(f"事件数据: {data}")
+        frappe.logger().info("="*50)
+        frappe.logger().info("收到 GHL Webhook 请求")
+        frappe.logger().info(f"事件类型: {data.get('type')}")
+        frappe.logger().info(f"事件数据: {data}")
 
         # 2. 执行 SDK 自动处理（令牌/安装卸载/验证）
         # 修复：直接调用函数，不再使用 .on() 装饰器
@@ -174,8 +174,8 @@ def webhook_func():
         # 3. 手动处理自定义事件（正确写法！）
         event_type = data.get('type')
 
-        contacts_id = args.id #提取 contacts 的 id 等价于 name
-        location_id = args.locationId #提取位置id(绑定账号相关信息)
+        contacts_id = data.id #提取 contacts 的 id 等价于 name
+        location_id = data.locationId #提取位置id(绑定账号相关信息)
         #method=frappe.request.method #请求方法
         ghc =  get_hl_client(location_id)
 
@@ -224,14 +224,14 @@ def webhook_func():
             
             '''
             doc_name = frappe.db.exists("GoHighLevel_Set", { 'locationid':location_id } ) #确认记录是否存在
-            if not doc_name:
+            if doc_name is None:
                 doc = frappe.new_doc("GoHighLevel_Set") #创建文档
                 doc.locationId = location_id
                 doc.位置名称 = f"{data.get('companyId')}_data.get('locationId')"
-                doc.private_integration_token = '' #安装时先不设置token，等用户配置后再更新
+                #doc.private_integration_token = '' #安装时先不设置token，等用户配置后再更新
                 doc.insert(ignore_permissions=True) #插入文档
             frappe.db.commit() #提交数据库事务
-            frappe.logger().error("✅ 应用安装事件触发")
+            frappe.logger().info("✅ 应用安装事件触发")
             # 你的逻辑：记录用户、初始化数据
             
         elif event_type == "UNINSTALL":
@@ -246,7 +246,7 @@ def webhook_func():
             }
             
             '''
-            frappe.logger().error("❌ 应用卸载事件触发")
+            frappe.logger().info("❌ 应用卸载事件触发")
             # 你的逻辑：清理数据
             '''            
             doc = frappe.get_doc("GoHighLevel_Set", location_id)
@@ -285,10 +285,10 @@ def webhook_func():
                 "timezone": "Etc/GMT+12",
                 "timestamp": "2026-03-29T13:46:44.227Z",
                 "webhookId": "8ba8264c-42b2-46ac-a8ba-041da618ccf7"
-                }
+            }
             '''
             del_contact(contacts_id)
-            frappe.logger().error("👤 联系人删除")
+            frappe.logger().info("👤 联系人删除")
         
             
         elif event_type == "ContactCreate":
@@ -319,17 +319,19 @@ def webhook_func():
             #upsert_contact(location_id,contacts_id)
             gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=contacts_id))  #提取gl记录
             doc =  upinsert_contact_doc(gh_doc)
-            frappe.logger().error("👤 新增客户事件触发")
+            frappe.logger().info("👤 新增客户事件触发")
 
             # 你的逻辑：同步CRM、发送通知
             
         elif event_type == "ContactUpdate":
             #联系人更新
-            frappe.logger().error("💰 联系人更新")
+            frappe.logger().info("💰 联系人更新")
             # 你的逻辑：发货、通知
             #upsert_contact(location_id,contacts_id)
             gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=contacts_id))  #提取gl记录
             doc =  upinsert_contact_doc(gh_doc)
+            frappe.logger().info("👤 更新联系人{doc.as_dict()}")
+
             #gh_doc = gh_doc.get('contact',{})
 
         # 4. 返回成功给 GHL

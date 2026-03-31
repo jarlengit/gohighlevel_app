@@ -217,7 +217,7 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         #更新国家代码,提取文档name
         address_doc['country'] = frappe.db.exists('Country',{'code': address_doc.get('country')})
         #frappe.get_value('Country',  filters={'code': address_doc.get('country')},fieldname='name')
-        frappe.logger().error(f"xxxx数据:{address_doc}")  # 记录错误日志
+        frappe.logger().info(f"xxxx数据:{address_doc}")  # 记录错误日志
 
         #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
         if address :=frappe.db.exists(address_doc['doctype'], {'locationid': data.get('locationId'), 'address_line1': address_doc.get('address_line1')}):
@@ -238,7 +238,7 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     else:
         #不存在
         doc = frappe.new_doc(doc['doctype']).update(doc).insert(ignore_permissions=True,ignore_if_duplicate=True)
-    frappe.logger().error(f"new_doc数据:{doc.as_dict()}")  #记录
+    frappe.logger().info(f"new_doc数据:{doc.as_dict()}")  #记录
     frappe.db.commit()
 
     return doc
