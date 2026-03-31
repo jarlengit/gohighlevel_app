@@ -318,7 +318,8 @@ def webhook_func():
             }
             '''
             #upsert_contact(location_id,contacts_id)
-            gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=contacts_id))  #提取gl记录
+            gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=data.id))  #提取gl记录
+            gh_doc = gh_doc.get('contact',{})
             doc =  upinsert_contact_doc(gh_doc)
             frappe.logger().error("👤 新增客户事件触发")
 
@@ -329,9 +330,12 @@ def webhook_func():
             frappe.logger().error("💰 联系人更新")
             # 你的逻辑：发货、通知
             #upsert_contact(location_id,contacts_id)
-            gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=contacts_id))  #提取gl记录
+            gh_doc = asyncio.run(ghc.contacts.get_contact(contact_id=data.id))  #提取gl记录
+            gh_doc = gh_doc.get('contact',{})
+            frappe.logger().error(f"👤 更新联系人数据{gh_doc}")
+
             doc =  upinsert_contact_doc(gh_doc)
-            frappe.logger().error("👤 更新联系人{doc.as_dict()}")
+            frappe.logger().error(f"👤 更新联系人{doc.as_dict()}")
 
             #gh_doc = gh_doc.get('contact',{})
 

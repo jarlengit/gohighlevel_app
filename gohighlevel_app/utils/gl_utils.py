@@ -122,7 +122,9 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
 'customFields': [], 'startAfter': [1772720436702, 'Dg4BsoqIKLirUfQivfV2']}
 
     """
+    frappe.logger().error(f"gl数据解析:{data}")  #记录日志
 
+    
     doc = {'doctype': 'Contact'}
     key_dict = {
         'contactName':'middle_name',
@@ -151,7 +153,7 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         
         for i in data.get('additionalEmails',[]):
             doc['email_ids'].append({'email_id':i.get('email'), 'is_primary':0})
-
+    frappe.logger().error(f"gl数据解析2:{doc}")  #记录日志
     return doc
 
 
@@ -209,15 +211,18 @@ def get_contact_lst(location_id: str) -> Optional[Dict[str, Any]]:
 
 def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     """根据字段定义解析联系人数据"""
-    doc = get_contact_doc(data) #提取联系人文档数据
-    address_doc = get_dddress_doc(data) #提取地址文档数据
+    doc = get_contact_doc(data)             #提取联系人文档数据
+    address_doc = get_dddress_doc(data)     #提取地址文档数据
+    frappe.logger().error(f"gl数据解析完成1:{data}")  #记录日志
+
+    frappe.logger().error(f"gl数据解析完成2:{address_doc} \n\n{doc}")  #记录日志
     #地址数据不为空才进行创建
     if address_doc.get("address_line1"):
         address_doc['locationid'] = data.get('locationId')
         #更新国家代码,提取文档name
         address_doc['country'] = frappe.db.exists('Country',{'code': address_doc.get('country')})
         #frappe.get_value('Country',  filters={'code': address_doc.get('country')},fieldname='name')
-        frappe.logger().info(f"xxxx数据:{address_doc}")  # 记录错误日志
+        frappe.logger().error(f"记录地址数据:{address_doc}")  # 记录错误日志
 
         #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
         if address :=frappe.db.exists(address_doc['doctype'], {'locationid': data.get('locationId'), 'address_line1': address_doc.get('address_line1')}):
