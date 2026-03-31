@@ -142,9 +142,9 @@ def del_contact(contacts_id):
     '''删除联系人事件'''
     try:
         
-        doc_name = frappe.db.exists("Contact", { 'custom_gohighlevel_contact_id':contacts_id } ) #确认联系人是否存在
-        if doc_name:
-            doc = frappe.get_doc("Contact",contacts_id) #提取文档
+        #确认联系人是否存在
+        if doc_name:= frappe.db.exists("Contact", { 'custom_gohighlevel_contact_id':contacts_id } ):
+            doc = frappe.get_doc("Contact",doc_name) #提取文档
             doc.delete(ignore_permissions=True) #删除文档
             frappe.db.commit() #提交数据库事务
             return True
@@ -177,7 +177,7 @@ def webhook_func():
         contacts_id = data.id #提取 contacts 的 id 等价于 name
         location_id = data.locationId #提取位置id(绑定账号相关信息)
         #method=frappe.request.method #请求方法
-        ghc =  get_hl_client(location_id)
+        
         doc = None #定义doc变量，便于后续返回结果使用"
 
         # =====================================
@@ -254,8 +254,10 @@ def webhook_func():
             doc.delete(ignore_permissions=True) #删除文档
             frappe.db.commit() #提交数据库事务
             '''
-            
-        elif event_type == "ContactDelete":
+        
+        ghc =  get_hl_client(location_id)
+
+        if event_type == "ContactDelete":
             '''
             {
                 "type": "ContactDelete",

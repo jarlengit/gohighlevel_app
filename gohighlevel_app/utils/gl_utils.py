@@ -153,6 +153,9 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         
         for i in data.get('additionalEmails',[]):
             doc['email_ids'].append({'email_id':i.get('email'), 'is_primary':0})
+    if data.get('phone'):
+        doc['phone_nos'] = [{'phone': data.get('phone'),'is_primary_phone':True}]
+     
     frappe.logger().error(f"gl数据解析2:{doc}")  #记录日志
     return doc
 
