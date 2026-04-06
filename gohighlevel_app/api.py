@@ -1,10 +1,11 @@
 from highlevel import HighLevel
-from highlevel.services.contacts.models import UpdateContactDto ,UpsertContactDto
+from highlevel.services.contacts.models import UpdateContactDto ,UpsertContactDto,CreateContactDto
 import frappe,json
 from deepdiff import DeepDiff
-import asyncio
+import asyncio,requests
 from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_dddress_doc,upinsert_contact_doc,get_contact_lst
 from highlevel.storage import MemorySessionStorage
+from frappe.model.document import Document
 
 def get_hl_client(location_id):
     """获取 GoHighLevel 客户端实例"""
@@ -350,8 +351,6 @@ def webhook_func():
         frappe.logger().error(f"处理失败: {str(e)}", exc_info=True)
         frappe.response["message"] = f"webhook处理失败: {str(e)}"
     
-   
-
 @frappe.whitelist(allow_guest=True)
 def webhook_func_2():
     """ 处理GoHighLevel的webhook事件(创建/删除,修改)，根据事件类型和请求方法进行相应的操作,webhook 网关 V2版本"""
@@ -387,9 +386,6 @@ def webhook_func_2():
         frappe.logger().error(f"{error_msg}, GoHighLevel webhook处理错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常  
         frappe.response["message"] =error_msg
-
-
-
 
 @frappe.whitelist(allow_guest=True)
 def data_up_task():
@@ -493,14 +489,13 @@ def data_up_task():
     except Exception as e:
         frappe.db.rollback()  # 异常回滚, 不涉及数据写入,可注释
         # 更友好的异常提示，便于排查
-        error_msg = f"处理GoHighLevel数据时出错：{str(e)}"
+
+        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{frappe.traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}, GoHighLevel数据同步错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
 
 
-@frappe.whitelist(allow_guest=True)
-def data_up_task_2():
-    '''定时任务：同步GoHighLevel联系人数据到Frappe'''
+def __data_up_task():
     try:
         out = []
         gh_lst =  frappe.get_all('GoHighLevel_Set',fields=['name', 'locationid','private_integration_token'] ,filters={'check': 1})
@@ -515,16 +510,291 @@ def data_up_task_2():
                 continue
 
             contacts = get_contact_lst(location_id)
+            '''
+            contacts = frappe.enqueue(
+                get_contact_lst,
+                # 直接传递参数，不要包 kwargs
+                location_id=location_id,
+                queue="long"
+
+            )'''
             if contacts:
                 frappe.msgprint(f"记录 {len(contacts)}条联系人数据")
-                for contact in contacts:
+                for i,contact in enumerate (contacts):
+                    contact['custom_custom_gohighlevel_locationid'] = location_id
                     doc = upinsert_contact_doc(contact)
                     out.append(doc.as_dict())
+                    frappe.logger().error(f"{i}, GoHighLevel数据同步{doc.name}")  # 记录错误日志
+
         return out
         
     except Exception as e:
         frappe.db.rollback()  # 异常回滚, 不涉及数据写入,可注释
         # 更友好的异常提示，便于排查
-        error_msg = f"处理GoHighLevel数据时出错：{str(e)}"
+        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{frappe.traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}, GoHighLevel数据同步错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
+
+
+@frappe.whitelist(allow_guest=True)
+def data_up_task_2():
+    '''定时任务：同步GoHighLevel联系人数据到Frappe'''
+    res = frappe.enqueue(
+        __data_up_task,
+        queue="long"
+    )
+    return {
+        "status": "queued",
+        "job_id": res.id  # 只返回 ID
+    }
+
+
+    
+""" 
+# HighLevel 开发者后台获取
+GHL_CLIENT_ID="69c53778c480e55ef298a2fe-mne5sst3"
+GHL_CLIENT_SECRET="d95ddd33-c8d3-409e-a86f-898fc58c7324"
+# 重定向URI：必须和GHL后台配置的完全一致（ngrok生成的HTTPS地址）
+GHL_REDIRECT_URI= "https://damion-perigean-aria.ngrok-free.dev/oauth/callback"
+# GHL OAuth固定端点（无需修改）
+GHL_AUTH_URL= "https://marketplace.gohighlevel.com/oauth/chooselocation"
+GHL_TOKEN_URL="https://services.leadconnectorhq.com/oauth/token"
+
+@frappe.whitelist(allow_guest=True)
+def oauth_callback():
+    # 1. 获取 GHL 传回的授权码（Frappe 方式获取 GET 参数）
+    auth_code = frappe.request.args.get("code")
+    
+    if not auth_code:
+        frappe.local.response["http_status_code"] = 400
+        return {"error": "未获取到授权码"}
+
+    # 2. 构造兑换令牌参数
+    token_params = {
+        "client_id": GHL_CLIENT_ID,
+        "client_secret": GHL_CLIENT_SECRET,
+        "redirect_uri": GHL_REDIRECT_URI,
+        "code": auth_code,
+        "grant_type": "authorization_code"
+    }
+
+    try:
+        # 3. 请求 HighLevel 令牌接口
+        with requests.post(GHL_TOKEN_URL, data=token_params) as response:
+            token_data = response.json()
+
+            # 4. 成功返回
+            if response.status_code == 200:
+                return {
+                    "message": "HighLevel App 认证成功！",
+                    "access_token": token_data.get("access_token"),
+                    "refresh_token": token_data.get("refresh_token"),
+                    "expires_in": token_data.get("expires_in")
+                }
+            else:
+                frappe.local.response["http_status_code"] = 400
+                return {"error": "令牌兑换失败", "details": token_data}
+
+    except Exception as e:
+        frappe.local.response["http_status_code"] = 500
+        return {"error": "请求异常", "details": str(e)}
+"""
+
+
+"""
+{
+"owner": "sj@ly.com",
+"creation": "2026-03-21 11:56:29.510515",
+"modified": "2026-03-24 22:06:44.664445",
+"modified_by": "Guest",
+"docstatus": 0,
+"idx": 0,
+"sync_with_google_contacts": 0,
+"doctype": "Contact",
+#是否主要联系人
+"is_primary_contact": 0,
+
+一下为有效数据
+
+    "name": "xdddooooo vvvvvvvv",
+    
+    "first_name": "xdddooooo",
+    "middle_name": "xdddooooo vvvvvvvv",
+    "last_name": "vvvvvvvv",
+    "full_name": "xdddooooo xdddooooo vvvvvvvv vvvvvvvv",
+
+    "email_id": "3032174cccczzzz73@qq.com",
+    "address": "cccccccccccc-Billing-2",
+
+    "status": "Passive",
+    "phone": "",
+    "mobile_no": "",
+    "custom_gohighlevel_contact_id": "w7NeTx4NxTfHrdxUB9Nu",
+    "image": "",
+    "pulled_from_google_contacts": 0,
+  
+    "unsubscribed": 0,
+    
+    "links": [],
+    "phone_nos": [],
+    "email_ids": [
+        {
+            "name": "24e1alqr0e",
+            "owner": "Guest",
+            "creation": "2026-03-21 11:56:29.510515",
+            "modified": "2026-03-24 22:06:44.664445",
+            "modified_by": "Guest",
+            "docstatus": 0,
+            "idx": 1,
+            "email_id": "3032174cccczzzz73@qq.com",
+            "is_primary": 1,
+            "parent": "xdddooooo vvvvvvvv",
+            "parentfield": "email_ids",
+            "parenttype": "Contact",
+            "doctype": "Contact Email"
+        }
+    ]
+}
+
+转换为 gohighlevel 联系人数据格式：
+
+firstName: Optional[str] = doc.first_name
+lastName: Optional[str] = doc.last_name #
+name: Optional[str] = doc.full_name #全名
+email: Optional[str] = doc.email_id #email
+phone: Optional[str] = doc.phone    #手机
+address1: Optional[str] = doc.address #地址
+city: Optional[str] = None      #城市
+state: Optional[str] = None     #省/洲
+postalCode: Optional[str] =  #邮政编码
+website: Optional[str] = None   #网站
+timezone: Optional[str] = None  #时区
+source: Optional[str] = None    #来源
+country: Optional[str] = None   #国家代码
+assignedTo: Optional[str] = None
+
+"""
+
+
+def on_gohighlevel_contacts_after_insert(doc: Document, method=None):
+    """绑定glh 联系人  创建事件"""
+    # 示例：自动计算总金额
+    try:
+        ghl_id = doc.custom_gohighlevel_contact_id
+        ghl_locationid =doc.custom_custom_gohighlevel_locationid
+        #if ghl_locationid:
+        if not ghl_id or not ghl_locationid:
+            return None
+
+        # 获取GHL客户端
+        ghc = get_hl_client(ghl_locationid)
+        
+        out = {
+            'firstName':    doc.first_name,
+            'lastName':     doc.last_name ,#
+            'name':         doc.full_name, #全名
+            'email':        doc.email_id, #email
+            'phone':        doc.phone,    #手机
+        }
+
+        if doc.address :
+            addr_doc = frappe.get_doc('Address',doc.address)
+            out['address1'] = addr_doc.address #地址
+            out['city'] = addr_doc.city         #城市
+            out['state'] = addr_doc.state       #省洲
+            out['postalCode'] = addr_doc.pincode #邮政编码
+        
+            if addr_doc.country:
+                country_doc = frappe.get_doc('Country',addr_doc.country)
+
+            if country_doc:
+                out['country'] = country_doc.code.upper() # #国家代码
+
+
+        out = {k:v for k,v in out.items() if v is not None}
+
+        out['locationId'] = ghl_locationid
+
+        create_date = CreateContactDto(**out)
+        ghc.contacts.create_contact(create_date)
+
+
+            #_t =ghc.contacts.delete_contact(ghl_id)
+        #_t =ghc.contacts.delete_contact(ghl_id)
+        frappe.logger().error(f"{ghl_id} 账户插入成功!\n{doc.as_dict()}")  # 记录错误日志
+
+    except Exception as e:
+        error_msg = f"删除 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        frappe.logger().error(f"{error_msg}")  # 记录错误日志
+        #frappe.throw(error_msg)  # 抛出异常
+   
+
+def on_gohighlevel_contacts_update(doc: Document, method=None):
+    """'''绑定glh 联系人  更新事件'''"""
+    # 示例：校验客户信用额度
+    try:
+        ghl_id = doc.custom_gohighlevel_contact_id
+        ghl_locationid =doc.custom_custom_gohighlevel_locationid
+        #if ghl_locationid:
+        # 没有GHL信息直接退出，绝不报错
+        if not ghl_id or not ghl_locationid:
+            return None
+
+        # 获取GHL客户端
+        ghc = get_hl_client(ghl_locationid)
+        
+        
+        out = {
+            'firstName':    doc.first_name,
+            'lastName':     doc.last_name ,#
+            'name':         doc.full_name, #全名
+            'email':        doc.email_id, #email
+            'phone':        doc.phone,    #手机
+        }
+
+        if doc.address :
+            addr_doc = frappe.get_doc('Address',doc.address)
+            out['address1'] = addr_doc.address #地址
+            out['city'] = addr_doc.city         #城市
+            out['state'] = addr_doc.state       #省洲
+            out['postalCode'] = addr_doc.pincode #邮政编码
+        
+            if addr_doc.country:
+                country_doc = frappe.get_doc('Country',addr_doc.country)
+
+            if country_doc:
+                out['country'] = country_doc.code.upper() # #国家代码
+
+        out = {k:v for k,v in out.items() if v is not None}
+
+        out['locationId'] = ghl_locationid
+
+        update = UpdateContactDto(**out)
+        ghc.contacts.update_contact(ghl_id,update)
+
+            #_t =ghc.contacts.delete_contact(ghl_id)
+        frappe.logger().error(f"{ghl_id,} 账户更新成功!\n{doc.as_dict()}")  # 记录错误日志
+
+    except Exception as e:
+        error_msg = f"更新 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        frappe.logger().error(f"{error_msg}")  # 记录错误日志
+        #frappe.throw(error_msg)  # 抛出异常
+   
+
+def on_gohighlevel_contacts_on_trash(doc: Document, method=None):
+    '''绑定glh 联系人 删除事件'''
+    try:
+        ghl_id = doc.custom_gohighlevel_contact_id
+        ghl_locationid =doc.custom_custom_gohighlevel_locationid
+        if ghl_locationid:
+            ghc = get_hl_client(ghl_locationid)
+
+            #_t =ghc.contacts.delete_contact(ghl_id)
+        _t =ghc.contacts.delete_contact(ghl_id)
+        frappe.logger().error(f"{ghl_id} 账户删除成功!,{_t}")  # 记录错误日志
+
+    except Exception as e:
+        error_msg = f"删除 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        frappe.logger().error(f"{error_msg}")  # 记录错误日志
+        frappe.throw(error_msg)  # 抛出异常
+        

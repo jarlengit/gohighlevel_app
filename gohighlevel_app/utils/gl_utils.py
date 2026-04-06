@@ -139,7 +139,8 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         'website':'website',
         'additionalEmails':'email_ids',
         'followers':'followers',
-        'profilePhoto':'image'    #头像
+        'profilePhoto':'image',    #头像
+        'custom_location_id_token':"custom_location_id_token"
     }
 
     #关键字段不为空才进行赋值
@@ -181,6 +182,11 @@ def get_dddress_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     #关键字段不为空才进行赋值
     doc.update({key_dict.get(k,k):v for k,v in data.items() if k in key_dict and v is not None})
     
+    if doc.get('country') is not None:
+        doc['country'] =  doc.get('country').lower() 
+    else:
+        doc['country'] = 'cn'
+    
     doc['custom_box'] = 1
     
     doc['address_title'] = doc.get('address_line1') if doc.get('address_line1') else '地址信息'
@@ -198,18 +204,52 @@ def get_contact_lst(location_id: str) -> Optional[Dict[str, Any]]:
 
     try:
         with reusable_async_loop() as loop:
-            contacts_meta = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=1))
-            total = contacts_meta.get("meta", {}).get('total', 0)
-            if total == 0:
-                frappe.msgprint(f"记录 {ght.get('name')} 无联系人数据")
-                return
+            start_after_id = None
+            start_after = None
+            contacts_all = []
             
-            contacts_data = loop.run_until_complete( ghc.contacts.get_contacts(location_id=location_id,limit=total))
-            contacts = contacts_data. get('contacts', [])
-            return contacts
+            
+            while True:
+                #contacts = await hl_client.contacts.get_contacts(location_id=location_id,limit=1)
+                #tags = contacts.get("meta",{}).get('total')
+                #contacts_all.extend(  contacts.get('contacts'))
+                query = {
+                    'location_id':location_id,
+                    'limit':100,
+                }
+                # 非第一页，添加分页参数（驼峰命名，匹配接口要求）
+                if start_after and start_after_id:
+                    query["start_after"] = start_after
+                    query["start_after_id"] = start_after_id
+                
+                contacts = loop.run_until_complete(ghc.contacts.get_contacts(**query))
+
+                #print(contacts)
+                if contacts.get('contacts') :
+                    contacts_all.extend(  contacts.get('contacts'))
+                
+               
+                meta = contacts.get("meta", {})
+                total = meta.get("total", 0)  # 总记录数
+                if total == 0:
+                    frappe.msgprint(f"记录无联系人数据")
+                    return None
+                new_start_after = meta.get("startAfter")  # 下一页时间戳
+                new_start_after_id = meta.get("startAfterId")  # 下一页ID
+                has_next_page = bool(meta.get("nextPageUrl"))  # 是否有下一页
+
+                # 终止条件：无下一页 或 已获取全部数据
+                if not has_next_page or len(contacts_all) >= total:
+                    break
+                # 更新分页参数，进入下一轮循环
+                start_after = new_start_after
+                start_after_id = new_start_after_id
+
+             
+            return contacts_all
 
     except Exception as e:
-        frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常: {str(e)}, locationId={location_id}, {data}")
+        frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常:{str(e)}, {frappe.traceback.format_exc()}, locationId={location_id}, {all_contacts}")
         return None
 
 def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -237,6 +277,7 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
             address_doc = frappe.new_doc(address_doc['doctype']).update(address_doc).insert(ignore_permissions=True)
         frappe.db.commit()
         doc['address'] = address_doc.name
+        doc['custom_custom_gohighlevel_locationid'] = data.get('locationId')
 
     #更新联系人数据，先判断是否存在相同locationid和name的联系人记录，如果存在则更新，不存在则创建
     if ct :=frappe.db.exists('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')}):

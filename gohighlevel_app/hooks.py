@@ -138,13 +138,13 @@ fixtures = ["gohighlevel_app/fixtures/custom_field.json"]
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+ 	"Contact": {
+ 		"on_update": "gohighlevel_app.api.on_gohighlevel_contacts_update",
+ 		"after_insert": "gohighlevel_app.api.on_gohighlevel_contacts_after_insert",
+ 		#"on_trash": "gohighlevel_app.api.on_gohighlevel_contacts_on_trash"
+ 	}
+}
 
 # Scheduled Tasks
 # ---------------
