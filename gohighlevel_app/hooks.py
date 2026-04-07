@@ -20,7 +20,7 @@ add_to_apps_screen = [
 # 		"has_permission": "gohighlevel_app.api.permission.has_app_permission"
  	}
  ]
-fixtures = ["gohighlevel_app/fixtures/custom_field.json"]
+fixtures = ["Custom Field"]
 
 # Includes in <head>
 # ------------------
@@ -141,7 +141,7 @@ fixtures = ["gohighlevel_app/fixtures/custom_field.json"]
 doc_events = {
  	"Contact": {
  		"on_update": "gohighlevel_app.api.on_gohighlevel_contacts_update",
- 		"after_insert": "gohighlevel_app.api.on_gohighlevel_contacts_after_insert",
+ 		#"on_update": "gohighlevel_app.api.on_gohighlevel_contacts_before_insert",
  		#"on_trash": "gohighlevel_app.api.on_gohighlevel_contacts_on_trash"
  	}
 }
