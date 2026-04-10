@@ -20,7 +20,8 @@ add_to_apps_screen = [
 # 		"has_permission": "gohighlevel_app.api.permission.has_app_permission"
  	}
  ]
-fixtures = ["Custom Field"]
+
+fixtures = ["Custom Field","GoHighLevel_Set"]
 
 # Includes in <head>
 # ------------------
@@ -154,7 +155,7 @@ scheduler_events = {
 # 		"gohighlevel_app.tasks.all"
 # 	],
  	"daily": [
- 		"gohighlevel_app.api.data_up_task" #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
+ 		"gohighlevel_app.api.data_up_task", #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
  		"gohighlevel_app.api.data_up_task_2" #每天执行数据同步任务(gohighlevel 联系人数据同步到frappe)
  	],
 # 	"hourly": [

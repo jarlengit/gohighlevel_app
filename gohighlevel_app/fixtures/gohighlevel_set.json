@@ -1,0 +1,32 @@
+[
+ {
+  "check": 1,
+  "docstatus": 0,
+  "doctype": "GoHighLevel_Set",
+  "locationId": "RfnanLJSWq5y0rxcgL0q",
+  "modified": "2026-04-06 13:03:25.874136",
+  "name": "RfnanLJSWq5y0rxcgL0q",
+  "private_integration_token": "pit-35c9d031-2142-433e-8ba8-e50896649ba8",
+  "位置名称": "测试2"
+ },
+ {
+  "check": 1,
+  "docstatus": 0,
+  "doctype": "GoHighLevel_Set",
+  "locationId": "Rft5PXFLw9e6vhedtZ86",
+  "modified": "2026-03-24 21:08:53.949950",
+  "name": "Rft5PXFLw9e6vhedtZ86",
+  "private_integration_token": "pit-161d8596-79c2-4d7a-a106-e9cd57789daf",
+  "位置名称": "测试1"
+ },
+ {
+  "check": 1,
+  "docstatus": 0,
+  "doctype": "GoHighLevel_Set",
+  "locationId": "7m9DrwbOTNKIjE7ZZBpa",
+  "modified": "2026-03-31 16:32:40.831298",
+  "name": "7m9DrwbOTNKIjE7ZZBpa",
+  "private_integration_token": "pit-1ae903b8-e8de-4ace-a125-8b1eea94990c",
+  "位置名称": "test3"
+ }
+]
