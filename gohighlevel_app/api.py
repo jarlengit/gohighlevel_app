@@ -6,6 +6,7 @@ import asyncio,requests
 from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_dddress_doc,upinsert_contact_doc,get_contact_lst
 from highlevel.storage import MemorySessionStorage
 from frappe.model.document import Document
+import traceback
 
 def get_hl_client(location_id):
     """获取 GoHighLevel 客户端实例"""
@@ -490,7 +491,7 @@ def data_up_task():
         frappe.db.rollback()  # 异常回滚, 不涉及数据写入,可注释
         # 更友好的异常提示，便于排查
 
-        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}, GoHighLevel数据同步错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
 
@@ -531,7 +532,7 @@ def __data_up_task():
     except Exception as e:
         frappe.db.rollback()  # 异常回滚, 不涉及数据写入,可注释
         # 更友好的异常提示，便于排查
-        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"处理GoHighLevel数据时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}, GoHighLevel数据同步错误")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
 
@@ -733,7 +734,7 @@ def on_gohighlevel_contacts_before_insert(doc: Document, method=None):
         return out
 
     except Exception as e:
-        error_msg = f"创建 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"创建 GoHighLevel账户 {doc.name}时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}")  # 记录错误日志
         #frappe.throw(error_msg)  # 抛出异常
    
@@ -805,7 +806,7 @@ def on_gohighlevel_contacts_update(doc: Document, method=None):
         return out
 
     except Exception as e:
-        error_msg = f"更新 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"更新 GoHighLevel账户 {doc.name}时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}")  # 记录错误日志
         #frappe.throw(error_msg)  # 抛出异常
    
@@ -823,7 +824,7 @@ def on_gohighlevel_contacts_on_trash(doc: Document, method=None):
         frappe.logger().error(f"{ghl_id} 账户删除成功!,{_t}")  # 记录错误日志
 
     except Exception as e:
-        error_msg = f"删除 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"删除 GoHighLevel账户 {doc.name}时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}")  # 记录错误日志
         frappe.throw(error_msg)  # 抛出异常
 
@@ -888,6 +889,6 @@ def on_gohighlevel_contacts_update_test(doc_name:str):
         return out
 
     except Exception as e:
-        error_msg = f"更新 GoHighLevel账户 {doc.name}时出错：{str(e)},{frappe.traceback.format_exc()}"
+        error_msg = f"更新 GoHighLevel账户 {doc.name}时出错：{str(e)},{traceback.format_exc()}"
         frappe.logger().error(f"{error_msg}")  # 记录错误日志
         #frappe.throw(error_msg)  # 抛出异常
