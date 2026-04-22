@@ -365,7 +365,7 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
 
         # 定义查找条件
         address_doctype = address_data.get('doctype')
-        existing_address_name = frappe.db.exists(address_doctype, {'locationid': location_id})
+        existing_address_name = frappe.db.exists(address_doctype, {'locationid': location_id,"address_line1":address_data.get("address_line1")})
 
         try:
             if existing_address_name:
