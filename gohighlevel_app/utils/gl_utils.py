@@ -127,7 +127,7 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     
     doc = {'doctype': 'Contact'}
     key_dict = {
-        'contactName':'middle_name',
+        'contactName':'full_name',
         'firstName':'first_name',
         'lastName':'last_name',
         'companyName':'company_name',
@@ -280,7 +280,7 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         doc['custom_custom_gohighlevel_locationid'] = data.get('locationId')
 
     #更新联系人数据，先判断是否存在相同locationid和name的联系人记录，如果存在则更新，不存在则创建
-    if ct :=frappe.db.exists('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')}):
+    if ct :=frappe.db.get_value('Contact', {'custom_gohighlevel_contact_id': doc.get('custom_gohighlevel_contact_id')},'full_name'):
         #存在
         doc.pop("name", None)
         doc = frappe.get_doc(doc['doctype'], ct).update(doc).save(ignore_permissions=True)
