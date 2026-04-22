@@ -3,7 +3,7 @@ from highlevel.services.contacts.models import UpdateContactDto ,UpsertContactDt
 import frappe,json
 from deepdiff import DeepDiff
 import asyncio,requests
-from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_address_doc,upinsert_contact_doc,get_contact_lst
+from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,extract_final_name,upinsert_contact_doc,get_contact_lst
 from highlevel.storage import MemorySessionStorage
 from frappe.model.document import Document
 import traceback
@@ -758,10 +758,14 @@ def on_gohighlevel_contacts_update(doc: Document, method=None):
         ghc = get_hl_client(ghl_locationid)
         
         #提取数据
+
+        last_name = doc.last_name
+        if last_name: 
+            last_name = extract_final_name(last_name, doc.get('firstName',''))
         
         out = {
             'firstName':    doc.first_name,
-            'lastName':     doc.last_name ,#
+            'lastName':     last_name ,#
             'name':         doc.full_name, #全名
             'email':        doc.email_id, #email
             'phone':        doc.phone,    #手机
@@ -769,8 +773,8 @@ def on_gohighlevel_contacts_update(doc: Document, method=None):
         #提取地址信息
         if doc.address :
             addr_doc = frappe.get_doc('Address',doc.address)
-
-            out['address1'] = doc.address #地址
+            #修正地址信息
+            out['address1'] = frappe.db.get_value("Address",doc.address,'address_line1') #地址
             out['city'] = addr_doc.city         #城市
             out['state'] = addr_doc.state       #省洲
             out['postalCode'] = addr_doc.pincode #邮政编码

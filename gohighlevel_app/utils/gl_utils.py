@@ -51,6 +51,32 @@ def reusable_async_loop():
         asyncio.set_event_loop(None)
 
 
+
+#修正命名
+def extract_final_name(input_string: str,key: str='') -> str:
+    # 1. 按空格分割字符串
+    words = input_string.split()
+    
+    # 2. 顺序去重 (利用 Python 3.7+ dict 保持插入顺序的特性)
+    unique_words = list(dict.fromkeys(words))
+    print(unique_words)
+    if key:
+        unique_words.pop(0)
+    else:
+        if key in unique_words:
+            unique_words.pop(key)
+        else:
+            unique_words.pop(0)
+
+    # 3. 返回最后一个唯一的名字
+    if len(unique_words) == 0:
+        return ""
+    elif len(unique_words) == 1:
+        return unique_words[0]
+    else:
+        return ' '.join(unique_words)
+
+
 def get_highlevel_client(location_id) -> Optional[HighLevel]:
     """
     获取GoHighLevel客户端实例（优化版）
@@ -145,7 +171,12 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
 
     #关键字段不为空才进行赋值
     doc.update({key_dict.get(k,k):v for k,v in data.items() if k in key_dict and v is not None})
-    
+
+    ###修正lastName问题
+    lastName = doc.get('last_name')
+    if lastName:
+        doc['last_name'] = extract_final_name(lastName,doc.get('firstName','') )
+
     doc['custom_gohighlevel_contact_id'] = data.get('id')
     if data.get('email'):
         doc['email_id'] = data.get('email')
