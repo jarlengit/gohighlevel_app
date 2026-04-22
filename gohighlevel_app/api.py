@@ -3,7 +3,7 @@ from highlevel.services.contacts.models import UpdateContactDto ,UpsertContactDt
 import frappe,json
 from deepdiff import DeepDiff
 import asyncio,requests
-from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_dddress_doc,upinsert_contact_doc,get_contact_lst
+from gohighlevel_app.utils.gl_utils import ContactConstants,fields_map,doc_fields_map,reusable_async_loop,get_highlevel_client,get_contact_doc,get_address_doc,upinsert_contact_doc,get_contact_lst
 from highlevel.storage import MemorySessionStorage
 from frappe.model.document import Document
 import traceback

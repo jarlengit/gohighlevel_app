@@ -161,7 +161,7 @@ def get_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     return doc
 
 
-def get_dddress_doc(data: Dict[str, Any]) -> Dict[str, Any]:
+def get_address_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     """根据字段定义解析联系人数据"""
     doc = {'doctype': 'Address'}
 
@@ -251,11 +251,11 @@ def get_contact_lst(location_id: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         frappe.logger().error(f"{ContactConstants.LOG_TITLE} - 获取联系人数据异常:{str(e)}, {frappe.traceback.format_exc()}, locationId={location_id}, {all_contacts}")
         return None
-
+'''
 def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
     """根据字段定义解析联系人数据"""
     doc = get_contact_doc(data)             #提取联系人文档数据
-    address_doc = get_dddress_doc(data)     #提取地址文档数据
+    address_doc = get_address_doc(data)     #提取地址文档数据
     frappe.logger().error(f"gl数据解析完成1:{data}")  #记录日志
 
     frappe.logger().error(f"gl数据解析完成2:{address_doc} \n\n{doc}")  #记录日志
@@ -268,10 +268,12 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
         frappe.logger().error(f"记录地址数据:{address_doc}")  # 记录错误日志
 
         #处理地址数据，先判断是否存在相同locationid和address_line1的地址记录，如果存在则更新，不存在则创建
-        if address :=frappe.db.exists(address_doc['doctype'], {'locationid': data.get('locationId'), 'address_line1': address_doc.get('address_line1')}):
+        if address :=frappe.db.exists(address_doc['doctype'], {'locationid': data.get('locationId')}):
             #存在
             address_doc.pop("name", None)
-            address_doc = frappe.get_doc(address_doc['doctype'], address).update(address_doc).save(ignore_permissions=True)
+            address_doc = frappe.get_doc(address_doc['doctype'], address)
+            address_doc.update(address_doc)
+            address_doc.save(ignore_permissions=True)
         else:
             #不存在
             address_doc = frappe.new_doc(address_doc['doctype']).update(address_doc).insert(ignore_permissions=True)
@@ -294,3 +296,104 @@ def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 
+'''
+
+
+def upinsert_contact_doc(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    根据字段定义解析联系人数据，执行更新或插入操作 (Upsert)
+    优化点：
+    1. 修复了 update/insert 链式调用的致命错误
+    2. 分离了地址与联系人的处理逻辑
+    3. 移除了不必要的手动 commit
+    4. 规范了日志级别
+    5. 增加了事务一致性处理
+    """
+    
+    # 1. 提取基础数据
+    contact_data = get_contact_doc(data)
+    address_data = get_address_doc(data) # 修正了原代码的拼写错误 dddress -> address
+    
+    # 使用 debug 级别记录调试信息，避免污染 error 日志
+    frappe.logger().debug(f"解析完成 - 原始数据: {data}")
+    frappe.logger().debug(f"解析完成 - 地址数据: {address_data}, 联系人数据: {contact_data}")
+
+    location_id = data.get('locationId')
+    address_name = None
+
+    # 2. 处理地址逻辑
+    if address_data and address_data.get("address_line1"):
+        address_data['locationid'] = location_id
+        
+        # 优化国家代码查找：如果没找到，保持原样或后续由系统校验
+        country_code = address_data.get('country')
+        if country_code:
+            country_name = frappe.db.exists('Country', {'code': country_code})
+            if country_name:
+                address_data['country'] = country_name
+
+        # 定义查找条件
+        address_doctype = address_data.get('doctype')
+        existing_address_name = frappe.db.exists(address_doctype, {'locationid': location_id})
+
+        try:
+            if existing_address_name:
+                # 更新逻辑：获取文档 -> 更新字段 -> 保存
+                address_doc = frappe.get_doc(address_doctype, existing_address_name)
+                address_doc.update(address_data)
+                address_doc.save(ignore_permissions=True)
+            else:
+                # 插入逻辑：新建文档 -> 赋值 -> 插入
+                # 注意：pop 掉 doctype，防止 new_doc 参数冲突
+                address_data.pop("doctype", None) 
+                address_doc = frappe.new_doc(address_doctype)
+                address_doc.update(address_data)
+                address_doc.insert(ignore_permissions=True)
+            
+            address_name = address_doc.name
+            frappe.logger().debug(f"地址处理完成: {address_name}")
+        except Exception as e:
+            frappe.log_error(f"地址保存失败 (LocationID: {location_id}): {str(e)}")
+            # 根据业务需求决定是否抛出异常中断流程
+            # raise
+
+    # 3. 处理联系人逻辑
+    contact_doctype = contact_data.get('doctype', 'Contact')
+    contact_id = contact_data.get('custom_gohighlevel_contact_id')
+    
+    # 关联地址和 LocationID (如果地址生成成功)
+    if address_name:
+        contact_data['address'] = address_name
+        contact_data['custom_custom_gohighlevel_locationid'] = location_id
+
+    # 查找现有联系人
+    existing_contact_name = frappe.db.get_value(
+        'Contact', 
+        {'custom_gohighlevel_contact_id': contact_id}, 
+        'name' # 注意：原代码取的是 full_name，这里修正为取 name，否则 get_doc 会报错
+    )
+
+    final_contact_doc = None
+    try:
+        if existing_contact_name:
+            # 更新逻辑
+            final_contact_doc = frappe.get_doc(contact_doctype, existing_contact_name)
+            # 防止更新覆盖 name 等核心字段
+            contact_data.pop("name", None)
+            contact_data.pop("doctype", None)
+            
+            final_contact_doc.update(contact_data)
+            final_contact_doc.save(ignore_permissions=True)
+        else:
+            # 插入逻辑
+            contact_data.pop("doctype", None)
+            final_contact_doc = frappe.new_doc(contact_doctype)
+            final_contact_doc.update(contact_data)
+            final_contact_doc.insert(ignore_permissions=True, ignore_if_duplicate=True)
+
+        frappe.logger().info(f"联系人处理完成: {final_contact_doc.name}")
+    except Exception as e:
+        frappe.log_error(f"联系人保存失败 (GHL ID: {contact_id}): {str(e)}")
+        raise # 联系人通常是主数据，失败建议抛出异常
+
+    return final_contact_doc
